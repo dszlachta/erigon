@@ -103,6 +103,25 @@ var cmdStageSnapshots = &cobra.Command{
 	},
 }
 
+var cmdStagePolygonSync = &cobra.Command{
+	Use:   "stage_polygon_sync",
+	Short: "",
+	Run: func(cmd *cobra.Command, args []string) {
+		logger := debug.SetupCobra(cmd, "integration")
+		db, err := openDB(dbCfg(kv.ChainDB, chaindata), true, logger)
+		if err != nil {
+			logger.Error("Opening DB", "error", err)
+			return
+		}
+
+		defer db.Close()
+		err = stagePolygonSync(db, cmd.Context(), logger)
+		if err != nil && !errors.Is(err, context.Canceled) {
+			logger.Error(err.Error())
+		}
+	},
+}
+
 var cmdStageHeaders = &cobra.Command{
 	Use:   "stage_headers",
 	Short: "",
@@ -631,6 +650,22 @@ func stageSnapshots(db kv.RwDB, ctx context.Context, logger log.Logger) error {
 		logger.Info("Progress", "snapshots", progress)
 		return nil
 	})
+}
+
+func stagePolygonSync(db kv.RwDB, ctx context.Context, logger log.Logger) error {
+	if reset {
+		// TODO
+	}
+
+	if unwind > 0 {
+		// TODO
+	}
+
+	// TODO maybe can have a download heimdall data flag?
+	//      which runs the stage with a no-op block downloader and execution engine (no insert blocks and no fcu)
+
+	logger.Error("This command only works with --unwind or --reset options")
+	return nil
 }
 
 func stageHeaders(db kv.RwDB, ctx context.Context, logger log.Logger) error {
