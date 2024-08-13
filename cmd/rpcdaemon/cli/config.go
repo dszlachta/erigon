@@ -165,7 +165,7 @@ func RootCommand() (*cobra.Command, *httpcfg.HttpCfg, bool) {
 	rootCmd.PersistentFlags().DurationVar(&cfg.RPCSlowLogThreshold, utils.RPCSlowFlag.Name, utils.RPCSlowFlag.Value, utils.RPCSlowFlag.Usage)
 	rootCmd.PersistentFlags().IntVar(&cfg.WebsocketSubscribeLogsChannelSize, utils.WSSubscribeLogsChannelSize.Name, utils.WSSubscribeLogsChannelSize.Value, utils.WSSubscribeLogsChannelSize.Usage)
 
-	var polygonSync bool
+	var polygonSync bool // TODO: make this flag work
 	rootCmd.PersistentFlags().BoolVar(&polygonSync, "polygon.sync", true, "Enabling syncing using the new polygon sync component")
 
 	fmt.Println(polygonSync)
@@ -501,6 +501,7 @@ func RemoteServices(ctx context.Context, cfg *httpcfg.HttpCfg, logger log.Logger
 		switch {
 		case cc != nil:
 			switch {
+			// TODO: uncomment
 			//case cc.Bor != nil:
 			//var borKv kv.RoDB
 
