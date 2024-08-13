@@ -356,8 +356,10 @@ func ExecV3(ctx context.Context,
 	rwsConsumed := make(chan struct{}, 1)
 	defer close(rwsConsumed)
 
-	execWorkers, applyWorker, rws, stopWorkers, waitWorkers := exec3.NewWorkersPool(lock.RLocker(), accumulator, logger, ctx, parallel, chainDb, rs, in, blockReader, chainConfig, genesis, engine, workerCount+1, cfg.dirs)
+	execWorkers, _, rws, stopWorkers, waitWorkers := exec3.NewWorkersPool(lock.RLocker(), accumulator, logger, ctx, parallel, chainDb, rs, in, blockReader, chainConfig, genesis, engine, workerCount+1, cfg.dirs)
 	defer stopWorkers()
+	applyWorker := cfg.applyWorker
+	applyWorker.ResetState(rs, accumulator)
 	applyWorker.DiscardReadList()
 
 	commitThreshold := batchSize.Bytes()
@@ -744,8 +746,11 @@ Loop:
 				HistoryExecution: offsetFromBlockBeginning > 0 && txIndex < int(offsetFromBlockBeginning),
 
 				BlockReceipts: receipts,
-				Config:        cfg.genesis.Config,
 			}
+			if cfg.genesis != nil {
+				txTask.Config = cfg.genesis.Config
+			}
+
 			if txTask.TxNum <= txNumInDB && txTask.TxNum > 0 {
 				inputTxNum++
 				skipPostEvaluation = true

@@ -39,8 +39,6 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/erigontech/erigon-lib/common/dbg"
-	"github.com/erigontech/erigon/polygon/bridge"
-
 	"github.com/erigontech/erigon-lib/log/v3"
 
 	"github.com/erigontech/erigon-lib/chain"
@@ -262,7 +260,7 @@ type spanReader interface {
 
 type bridgeReader interface {
 	Events(ctx context.Context, blockNum uint64) ([]*types.Message, error)
-	TxLookup(ctx context.Context, borTxHash libcommon.Hash) (uint64, bool, error)
+	EventTxnLookup(ctx context.Context, borTxHash libcommon.Hash) (uint64, bool, error)
 }
 
 func ValidateHeaderTime(
@@ -1513,14 +1511,8 @@ func (c *Bor) CommitStates(
 	if c.BridgeReader != nil {
 		events, err := c.BridgeReader.Events(c.execCtx, blockNum)
 		if err != nil {
-			if errors.Is(err, bridge.ErrMapNotAvailable) {
-				return nil
-			}
-
 			return err
 		}
-
-		c.logger.Debug("using polygon bridge", "len(events)", len(events), "blockNum", blockNum)
 
 		for _, event := range events {
 			_, err := syscall(*event.To(), event.Data())

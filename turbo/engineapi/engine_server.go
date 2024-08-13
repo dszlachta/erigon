@@ -212,10 +212,8 @@ func (s *EngineServer) newPayload(ctx context.Context, req *engine_types.Executi
 		requests = append(requests, req.DepositRequests.Requests()...)
 		requests = append(requests, req.WithdrawalRequests.Requests()...)
 		requests = append(requests, req.ConsolidationRequests.Requests()...)
-		if requests != nil {
-			rh := types.DeriveSha(requests)
-			header.RequestsRoot = &rh
-		}
+		rh := types.DeriveSha(requests)
+		header.RequestsRoot = &rh
 	}
 
 	if version <= clparams.CapellaVersion {
@@ -582,7 +580,8 @@ func (s *EngineServer) forkchoiceUpdated(ctx context.Context, forkchoiceState *e
 		return nil, err
 	}
 	if resp.Busy {
-		return nil, errors.New("[ForkChoiceUpdated]: execution service is busy, cannot assemble blocks")
+		s.logger.Warn("[ForkChoiceUpdated] Execution Service busy, could not fulfil Assemble Block request", "req.parentHash", req.ParentHash)
+		return &engine_types.ForkChoiceUpdatedResponse{PayloadStatus: &engine_types.PayloadStatus{Status: engine_types.SyncingStatus}, PayloadId: nil}, nil
 	}
 	return &engine_types.ForkChoiceUpdatedResponse{
 		PayloadStatus: &engine_types.PayloadStatus{
