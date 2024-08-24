@@ -1,8 +1,11 @@
 package stagedsync
 
 import (
+	"bufio"
 	"context"
 	"fmt"
+	"os"
+	"strconv"
 	"time"
 
 	"github.com/ledgerwatch/log/v3"
@@ -554,6 +557,37 @@ func (s *Sync) unwindStage(firstCycle bool, stage *Stage, db kv.RwDB, txc wrap.T
 	return nil
 }
 
+var blocksWanted []uint64
+var indexFile string
+
+func init() {
+	indexFile = os.Getenv("DSZ_INDEX_FILE")
+	if indexFile == "" {
+		fmt.Println("Index file: no index file")
+		return
+	}
+
+	fmt.Println("Index file:", indexFile)
+
+	f, err := os.Open(indexFile)
+	if err != nil {
+		panic(fmt.Sprintf("index file: cannot open: %w", err))
+	}
+	defer f.Close()
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		t := scanner.Text()
+		u, err := strconv.ParseUint(t, 10, 64)
+		if err != nil {
+			panic(fmt.Sprintf("index file: parsing error: %w", err))
+		}
+		blocksWanted = append(blocksWanted, u)
+	}
+	if err := scanner.Err(); err != nil {
+		panic(fmt.Sprintf("index file: scanner error: %w", err))
+	}
+}
+
 // Run the pruning function for the given stage
 func (s *Sync) pruneStage(firstCycle bool, stage *Stage, db kv.RwDB, tx kv.RwTx) error {
 	start := time.Now()
@@ -562,6 +596,15 @@ func (s *Sync) pruneStage(firstCycle bool, stage *Stage, db kv.RwDB, tx kv.RwTx)
 	stageState, err := s.StageState(stage.ID, tx, db)
 	if err != nil {
 		return err
+	}
+
+	if indexFile != "" {
+		for i := 0; i < len(blocksWanted); i++ {
+			if stageState.BlockNumber == blocksWanted[i] {
+				s.logger.Info(fmt.Sprintf("Hack: not pruning block %d", stageState.BlockNumber))
+				return nil
+			}
+		}
 	}
 
 	pruneState, err := s.PruneStageState(stage.ID, stageState.BlockNumber, tx, db)
